@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Controle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .container { width: 100%; max-width: 420px; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .logo { font-size: 13px; color: #666; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .client-name { font-size: 28px; font-weight: 600; color: #fff; }
+  .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .status-label { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 0.08em; }
+  .status-badge { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+  .status-badge.connected { background: #0d2e1a; color: #4ade80; border: 1px solid #166534; }
+  .status-badge.disconnected { background: #2e1010; color: #f87171; border: 1px solid #7f1d1d; }
+  .status-badge.connecting { background: #2e2510; color: #fbbf24; border: 1px solid #92400e; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.connected { background: #4ade80; animation: pulse-green 2s infinite; }
+  .dot.disconnected { background: #f87171; }
+  .dot.connecting { background: #fbbf24; animation: pulse-yellow 1s infinite; }
+  @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes pulse-yellow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .number { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .number-label { font-size: 12px; color: #555; }
+  .divider { height: 1px; background: #2a2a2a; margin: 20px 0; }
+  .qr-section { display: none; text-align: center; padding: 16px 0; }
+  .qr-section.visible { display: block; }
+  .qr-title { font-size: 15px; color: #ccc; margin-bottom: 6px; }
+  .qr-subtitle { font-size: 12px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+  .qr-wrapper { background: #fff; border-radius: 12px; padding: 16px; display: inline-block; margin-bottom: 16px; }
+  .qr-wrapper img { width: 200px; height: 200px; display: block; }
+  .pairing-code { display: none; background: #111; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .pairing-code.visible { display: block; }
+  .pairing-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .pairing-number { font-size: 32px; font-weight: 700; letter-spacing: 0.15em; color: #fff; font-family: monospace; }
+  .timer { font-size: 12px; color: #f87171; margin-top: 6px; }
+  .btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: #25d366; color: #000; }
+  .btn-primary:hover { background: #20c05c; }
+  .btn-primary:disabled { background: #1a5c30; color: #2a8a4a; cursor: not-allowed; }
+  .btn-secondary { background: #222; color: #999; border: 1px solid #333; margin-top: 10px; }
+  .instructions { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .instructions-title { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .step { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+  .step:last-child { margin-bottom: 0; }
+  .step-num { width: 20px; height: 20px; background: #222; border: 1px solid #333; border-radius: 50%; font-size: 11px; color: #666; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; color: #888; line-height: 1.5; }
+  .step-text strong { color: #ccc; font-weight: 500; }
+  .loading-spinner { width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { background: #2e1010; border: 1px solid #7f1d1d; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #f87171; display: none; margin-top: 12px; }
+  .success-msg { background: #0d2e1a; border: 1px solid #166534; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #4ade80; display: none; margin-top: 12px; text-align: center; }
+  .test-section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .test-title { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+  .test-input { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; font-family: inherit; resize: none; outline: none; margin-bottom: 10px; transition: border 0.2s; }
+  .test-input:focus { border-color: #25d366; }
+  .test-input::placeholder { color: #444; }
+  .test-number-input { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; font-family: inherit; outline: none; margin-bottom: 10px; transition: border 0.2s; }
+  .test-number-input:focus { border-color: #25d366; }
+  .test-number-input::placeholder { color: #444; }
+  .test-log { background: #111; border: 1px solid #2a2a2a; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #666; font-family: monospace; min-height: 60px; margin-top: 10px; display: none; line-height: 1.6; }
+  .test-log.visible { display: block; }
+  .log-sent { color: #60a5fa; }
+  .log-ok { color: #4ade80; }
+  .log-err { color: #f87171; }
+  .footer { text-align: center; margin-top: 24px; font-size: 12px; color: #333; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">Virtual Agência e Automação</div>
+    <div class="client-name" id="clientName">Carregando...</div>
+  </div>
+
+  <div class="card">
+    <div class="status-row">
+      <span class="status-label">Status do Agente</span>
+      <div class="status-badge" id="statusBadge">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Verificando...</span>
+      </div>
+    </div>
+    <div class="number" id="phoneNumber">---</div>
+    <div class="number-label">Número conectado</div>
+    <div class="divider"></div>
+    <div class="qr-section" id="qrSection">
+      <div class="qr-title">Escaneie o QR Code</div>
+      <div class="qr-subtitle">Abra o WhatsApp → 3 pontinhos → Dispositivos conectados → Conectar dispositivo</div>
+      <div class="qr-wrapper"><img id="qrImage" src="" alt="QR Code" /></div>
+      <div class="timer" id="qrTimer"></div>
+    </div>
+    <div class="pairing-code" id="pairingSection">
+      <div class="pairing-label">Código de conexão</div>
+      <div class="pairing-number" id="pairingCode">--------</div>
+      <div class="timer" id="pairingTimer">Expira em 60 segundos</div>
+    </div>
+    <button class="btn btn-primary" id="connectBtn" onclick="handleConnect()">
+      <div class="loading-spinner" id="btnSpinner"></div>
+      <span id="btnText">Reconectar agente</span>
+    </button>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg">✓ Agente conectado com sucesso!</div>
+  </div>
+
+  <div class="instructions" id="instructionsQR" style="display:none;">
+    <div class="instructions-title">Como escanear</div>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Abra o <strong>WhatsApp</strong> no seu celular</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Toque nos <strong>3 pontinhos</strong> (canto superior direito)</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Toque em <strong>Dispositivos conectados</strong></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text">Toque em <strong>Conectar dispositivo</strong></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-text">Aponte a câmera para o <strong>QR Code</strong> acima</div></div>
+  </div>
+
+  <div class="instructions" id="instructionsPairing" style="display:none;">
+    <div class="instructions-title">Como usar o código</div>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Abra o <strong>WhatsApp</strong> no seu celular</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Toque nos <strong>3 pontinhos</strong></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Toque em <strong>Dispositivos conectados</strong></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text">Toque em <strong>Conectar dispositivo</strong></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-text">Toque em <strong>Conectar com número de telefone</strong></div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-text">Digite o código <strong>acima</strong> no campo indicado</div></div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">Testar agente</div>
+    <input class="test-number-input" id="testNumber" type="tel" placeholder="Número de destino (ex: 5583999999999)" />
+    <textarea class="test-input" id="testMessage" rows="3" placeholder="Digite uma mensagem de teste...">Oi, tudo bem?</textarea>
+    <button class="btn btn-primary" onclick="sendTest()" id="testBtn">
+      <div class="loading-spinner" id="testSpinner"></div>
+      <span id="testBtnText">Enviar mensagem de teste</span>
+    </button>
+    <div class="test-log" id="testLog"></div>
+  </div>
+
+  <div class="footer">Virtual Agência e Automação</div>
+</div>
+
+<script>
+const API_URL = 'http://177.7.52.91:32768';
+const params = new URLSearchParams(window.location.search);
+const API_KEY = params.get('apikey') || 'clientetododia2024';
+const INSTANCE = params.get('instance') || 'marcelo';
+const CLIENT_NAME = params.get('name') || 'Meu Agente';
+const PHONE = params.get('phone') || '';
+
+document.getElementById('clientName').textContent = CLIENT_NAME;
+document.getElementById('phoneNumber').textContent = PHONE ? formatPhone(PHONE) : '---';
+if (PHONE) document.getElementById('testNumber').value = PHONE;
+
+function formatPhone(p) {
+  const d = p.replace(/\D/g, '');
+  if (d.length === 13) return '+' + d.slice(0,2) + ' (' + d.slice(2,4) + ') ' + d.slice(4,9) + '-' + d.slice(9);
+  if (d.length === 11) return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+  return p;
+}
+
+async function fetchStatus() {
+  try {
+    const r = await fetch(API_URL + '/instance/connectionState/' + INSTANCE, { headers: { apikey: API_KEY } });
+    const d = await r.json();
+    return d.instance?.state || 'close';
+  } catch (e) { return 'close'; }
+}
+
+function setStatus(state) {
+  const badge = document.getElementById('statusBadge');
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const btn = document.getElementById('connectBtn');
+  const btnText = document.getElementById('btnText');
+  badge.className = 'status-badge';
+  dot.className = 'dot';
+  if (state === 'open') {
+    badge.classList.add('connected'); dot.classList.add('connected');
+    text.textContent = 'Conectado'; btn.disabled = true; btnText.textContent = 'Agente ativo';
+    document.getElementById('successMsg').style.display = 'block';
+    document.getElementById('qrSection').classList.remove('visible');
+    document.getElementById('pairingSection').classList.remove('visible');
+    document.getElementById('instructionsQR').style.display = 'none';
+    document.getElementById('instructionsPairing').style.display = 'none';
+  } else if (state === 'connecting') {
+    badge.classList.add('connecting'); dot.classList.add('connecting');
+    text.textContent = 'Conectando...'; btn.disabled = false; btnText.textContent = 'Gerar novo código';
+  } else {
+    badge.classList.add('disconnected'); dot.classList.add('disconnected');
+    text.textContent = 'Desconectado'; btn.disabled = false; btnText.textContent = 'Reconectar agente';
+  }
+}
+
+async function handleConnect() {
+  const btn = document.getElementById('connectBtn');
+  const spinner = document.getElementById('btnSpinner');
+  const btnText = document.getElementById('btnText');
+  const errorMsg = document.getElementById('errorMsg');
+  btn.disabled = true; spinner.style.display = 'block'; btnText.textContent = 'Gerando...';
+  errorMsg.style.display = 'none'; document.getElementById('successMsg').style.display = 'none';
+  try {
+    try { await fetch(API_URL + '/instance/delete/' + INSTANCE, { method: 'DELETE', headers: { apikey: API_KEY } }); } catch(e) {}
+    await new Promise(r => setTimeout(r, 1500));
+    const r = await fetch(API_URL + '/instance/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: API_KEY },
+      body: JSON.stringify({ instanceName: INSTANCE, integration: 'WHATSAPP-BAILEYS', qrcode: true, number: PHONE.replace(/\D/g, '') })
+    });
+    const d = await r.json();
+    if (d.qrcode?.base64) {
+      document.getElementById('qrImage').src = d.qrcode.base64;
+      document.getElementById('qrSection').classList.add('visible');
+      document.getElementById('instructionsQR').style.display = 'block';
+      document.getElementById('instructionsPairing').style.display = 'none';
+      if (d.qrcode.pairingCode) {
+        document.getElementById('pairingCode').textContent = d.qrcode.pairingCode;
+        document.getElementById('pairingSection').classList.add('visible');
+        document.getElementById('instructionsPairing').style.display = 'block';
+        startPairingTimer();
+      }
+      setStatus('connecting');
+      startPolling();
+    } else { throw new Error('QR code nao gerado'); }
+  } catch (e) {
+    errorMsg.textContent = 'Erro ao gerar código. Tente novamente.';
+    errorMsg.style.display = 'block'; setStatus('close');
+  }
+  spinner.style.display = 'none'; btn.disabled = false; btnText.textContent = 'Gerar novo código';
+}
+
+let pairingInterval = null;
+function startPairingTimer() {
+  if (pairingInterval) clearInterval(pairingInterval);
+  let seconds = 60;
+  const timer = document.getElementById('pairingTimer');
+  pairingInterval = setInterval(() => {
+    seconds--;
+    timer.textContent = 'Expira em ' + seconds + ' segundos';
+    if (seconds <= 0) {
+      clearInterval(pairingInterval);
+      timer.textContent = 'Código expirado — gere um novo';
+      document.getElementById('pairingCode').textContent = '--------';
+    }
+  }, 1000);
+}
+
+let pollInterval = null;
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const state = await fetchStatus();
+    if (state === 'open') { clearInterval(pollInterval); if (pairingInterval) clearInterval(pairingInterval); setStatus('open'); }
+  }, 3000);
+}
+
+async function sendTest() {
+  const btn = document.getElementById('testBtn');
+  const spinner = document.getElementById('testSpinner');
+  const btnText = document.getElementById('testBtnText');
+  const log = document.getElementById('testLog');
+  const numero = document.getElementById('testNumber').value.replace(/\D/g, '');
+  const mensagem = document.getElementById('testMessage').value.trim();
+
+  if (!numero || !mensagem) {
+    log.className = 'test-log visible';
+    log.innerHTML = '<span class="log-err">Preencha o número e a mensagem!</span>';
+    return;
+  }
+
+  btn.disabled = true; spinner.style.display = 'block'; btnText.textContent = 'Enviando...';
+  log.className = 'test-log visible';
+  log.innerHTML = '<span class="log-sent">Enviando mensagem para ' + numero + '...</span>';
+
+  try {
+    const r = await fetch(API_URL + '/message/sendText/' + INSTANCE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: API_KEY },
+      body: JSON.stringify({ number: numero + '@s.whatsapp.net', text: mensagem, delay: 1000 })
+    });
+    const d = await r.json();
+    if (d.key || d.status === 'PENDING') {
+      log.innerHTML += '<br><span class="log-ok">✓ Mensagem enviada! Aguarde a resposta do agente no WhatsApp.</span>';
+    } else {
+      log.innerHTML += '<br><span class="log-err">Erro: ' + (d.response?.message || 'Falha no envio') + '</span>';
+    }
+  } catch (e) {
+    log.innerHTML += '<br><span class="log-err">Erro de conexão. Verifique se o agente está conectado.</span>';
+  }
+
+  spinner.style.display = 'none'; btn.disabled = false; btnText.textContent = 'Enviar mensagem de teste';
+}
+
+async function init() {
+  const state = await fetchStatus();
+  setStatus(state);
+}
+
+init();
+setInterval(async () => { const state = await fetchStatus(); if (state === 'open') setStatus('open'); }, 10000);
+</script>
+</body>
+</html>
